@@ -36,7 +36,21 @@ class DashboardController extends Controller
             'avg_milk_yield' => round($cattle->avg('average_daily_yield'), 1),
         ];
 
-        return view('dashboard', compact('cattle', 'alerts', 'diagnosis', 'stats'));
+        // Prepare chart data for last 7 days
+        $milkTrends = \App\Models\MilkProduction::selectRaw('production_date, SUM(total_daily_yield) as total')
+            ->groupBy('production_date')
+            ->orderBy('production_date', 'desc')
+            ->take(7)
+            ->get()
+            ->reverse();
+
+        $healthDistribution = [
+            'Optimal' => $stats['healthy_cattle'],
+            'Caution' => $stats['at_risk'] - $stats['critical'],
+            'Critical' => $stats['critical']
+        ];
+
+        return view('dashboard', compact('cattle', 'alerts', 'diagnosis', 'stats', 'milkTrends', 'healthDistribution'));
     }
 
     public function checkSymptom(Request $request)
